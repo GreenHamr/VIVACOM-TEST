@@ -1,0 +1,40 @@
+# IP Inventory backend – примерен конфигурационен файл
+# Копирай като config.conf и промени стойностите при нужда.
+# Редовете започващи с # се игнорират.
+#
+# Приоритет: променливите на средата (IPINVENTORY_*) презаписват стойностите от този файл.
+
+host=127.0.0.1
+port=8080
+
+# --- База данни (трите БД и трите типа връзка) ---
+# db_type = sqlite | postgresql | mssql | oracle
+# db_connection = odbc | ado_ole_db | orm   (за postgresql/mssql/oracle; за sqlite се игнорира)
+# За sqlite: използва се само db_path. За останалите: db_connection_string или db_host/db_port/db_name/db_user/db_password.
+
+db_type=sqlite
+db_connection=odbc
+db_path=ip_inventory.db
+
+# --- PostgreSQL (нативен драйвер libpq) ---
+# db_type=postgresql
+# db_host=test.greenhamr.org
+# db_port=5432
+# db_name=viva
+# db_user=billing_bs
+# db_password=
+# (db_connection се игнорира при postgresql – винаги се използва libpq)
+
+# --- Пример за MSSQL чрез ODBC ---
+# db_type=mssql
+# db_connection=odbc
+# db_connection_string=Driver={ODBC Driver 17 for SQL Server};Server=localhost,1433;Database=ipinv;Uid=user;Pwd=pass;
+
+# --- Пример за Oracle чрез ODBC ---
+# db_type=oracle
+# db_connection=odbc
+# db_connection_string=Driver={Oracle in instantclient};Dbq=localhost:1521/ORCL;Uid=user;Pwd=pass;
+
+# --- MSSQL чрез ADO/OLE DB (само Windows, в разработка) ---
+# db_type=mssql
+# db_connection=ado_ole_db
