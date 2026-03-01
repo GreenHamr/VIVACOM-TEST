@@ -1,66 +1,66 @@
 # IP Inventory REST API – Backend
 
-C++ backend за управление на IP pool (инвентар на IP адреси) с REST API. Поддържа SQLite, PostgreSQL, MSSQL и Oracle чрез различни типове връзка (ODBC, ADO/OLE DB, ORM).
+C++ backend for IP pool management (IP address inventory) with REST API. Supports SQLite, PostgreSQL, MSSQL and Oracle via different connection types (ODBC, ADO/OLE DB, ORM).
 
 ---
 
-## Съдържание
+## Table of Contents
 
-1. [Описание на кода и процесите](#1-описание-на-кода-и-процесите)
-2. [Блок-схеми](#2-блок-схеми)
-3. [База данни](#3-база-данни)
-4. [Конфигурация](#4-конфигурация)
-5. [Build процес и скриптове](#5-build-процес-и-скриптове)
-6. [Тестове](#6-тестове)
+1. [Code and Process Description](#1-code-and-process-description)
+2. [Flowcharts](#2-flowcharts)
+3. [Database](#3-database)
+4. [Configuration](#4-configuration)
+5. [Build Process and Scripts](#5-build-process-and-scripts)
+6. [Tests](#6-tests)
 
 ---
 
-## 1. Описание на кода и процесите
+## 1. Code and Process Description
 
-### 1.1 Архитектура
+### 1.1 Architecture
 
-Проектът е C++ REST API сървър, изграден върху:
+The project is a C++ REST API server built on:
 
-| Компонент | Библиотека | Версия |
-|-----------|------------|--------|
-| HTTP сървър | cpp-httplib | v0.14.3 |
+| Component | Library | Version |
+|-----------|---------|---------|
+| HTTP server | cpp-httplib | v0.14.3 |
 | JSON | nlohmann/json | v3.11.2 |
-| База данни | SQLite3 / libpq (PostgreSQL) | системна или FetchContent |
+| Database | SQLite3 / libpq (PostgreSQL) | system or bundled |
 
-### 1.2 Структура на кода
+### 1.2 Code Structure
 
 ```
 src/
-├── main.cpp              # Точка на влизане, HTTP сървър, REST handlers
-├── storage.hpp           # Интерфейс IStorage и DbConfig
-├── storage_factory.cpp   # Фабрика за създаване на storage по db_type
-├── storage_sqlite.cpp    # Имплементация за SQLite
-├── storage_postgresql.cpp# Имплементация за PostgreSQL (libpq)
-├── storage_odbc.cpp      # Stub за ODBC (MSSQL/Oracle)
-├── storage_ado.cpp       # Stub за ADO/OLE DB (Windows)
-└── ip_validation.cpp     # Валидация на IPv4/IPv6
+├── main.cpp              # Entry point, HTTP server, REST handlers
+├── storage.hpp           # IStorage interface and DbConfig
+├── storage_factory.cpp   # Factory for creating storage by db_type
+├── storage_sqlite.cpp    # SQLite implementation
+├── storage_postgresql.cpp# PostgreSQL implementation (libpq)
+├── storage_odbc.cpp      # ODBC stub (MSSQL/Oracle)
+├── storage_ado.cpp       # ADO/OLE DB stub (Windows)
+└── ip_validation.cpp     # IPv4/IPv6 validation
 ```
 
-### 1.3 Основен поток на изпълнение
+### 1.3 Main Execution Flow
 
-1. **Стартиране** – `main()` зарежда конфигурация от `config.conf` или env променливи
-2. **Инициализация** – `createStorage()` създава подходящ storage backend според `db_type` и `db_connection`
-3. **Подключване към БД** – `storage->init()` инициализира връзката (при SQLite – създава таблиците ако липсват)
-4. **HTTP сървър** – cpp-httplib слуша на `host:port` и обслужва заявки под `/ip-inventory/*`
-5. **Обработка на заявки** – всеки handler парсва JSON, валидира, извиква storage и връща JSON отговор
+1. **Startup** – `main()` loads configuration from `config.conf` or environment variables
+2. **Initialization** – `createStorage()` creates the appropriate storage backend based on `db_type` and `db_connection`
+3. **Database Connection** – `storage->init()` initializes the connection (for SQLite – creates tables if missing)
+4. **HTTP Server** – cpp-httplib listens on `host:port` and serves requests under `/ip-inventory/*`
+5. **Request Handling** – each handler parses JSON, validates, calls storage, and returns a JSON response
 
-### 1.4 REST API методи
+### 1.4 REST API Methods
 
-| Метод | Път | Описание |
-|-------|-----|----------|
-| POST | `/ip-inventory/ip-pool` | Добавя IP адреси в pool (status=free) |
-| POST | `/ip-inventory/reserve-ip` | Резервира свободни IP за serviceId |
-| POST | `/ip-inventory/assign-ip-serviceId` | Присвоява резервираните IP на serviceId |
-| POST | `/ip-inventory/terminate-ip-serviceId` | Освобождава присвоени IP (връща ги в free) |
-| POST | `/ip-inventory/serviceId-change` | Прехвърля IP от един serviceId към друг |
-| GET | `/ip-inventory/serviceId?serviceId=xxx` | Връща всички IP за даден serviceId |
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/ip-inventory/ip-pool` | Add IP addresses to pool (status=free) |
+| POST | `/ip-inventory/reserve-ip` | Reserve free IPs for serviceId |
+| POST | `/ip-inventory/assign-ip-serviceId` | Assign reserved IPs to serviceId |
+| POST | `/ip-inventory/terminate-ip-serviceId` | Release assigned IPs (return to free) |
+| POST | `/ip-inventory/serviceId-change` | Transfer IPs from one serviceId to another |
+| GET | `/ip-inventory/serviceId?serviceId=xxx` | Get all IPs for a given serviceId |
 
-### 1.5 Жизнен цикъл на IP адрес
+### 1.5 IP Address Lifecycle
 
 ```
 [free] → reserve-ip → [reserved] → assign-ip-serviceId → [assigned]
@@ -68,27 +68,27 @@ src/
 [free] ← terminate-ip-serviceId ← [assigned] ← serviceId-change
 ```
 
-### 1.6 Storage слой
+### 1.6 Storage Layer
 
-- **IStorage** – абстрактен интерфейс с методи: `init`, `addIps`, `reserveIps`, `assignIps`, `terminateIps`, `changeServiceId`, `getByServiceId`
-- **StorageFactory** – избира имплементация по `db_type` (sqlite/postgresql/mssql/oracle) и `db_connection` (odbc/ado_ole_db/orm)
-- **Валидация** – `ip_validation.hpp`: `isValidIPv4()`, `isValidIPv6()`, `isValidIPWithType()` – използва се при add ip-pool и reserve-ip
+- **IStorage** – abstract interface with methods: `init`, `addIps`, `reserveIps`, `assignIps`, `terminateIps`, `changeServiceId`, `getByServiceId`
+- **StorageFactory** – selects implementation by `db_type` (sqlite/postgresql/mssql/oracle) and `db_connection` (odbc/ado_ole_db/orm)
+- **Validation** – `ip_validation.hpp`: `isValidIPv4()`, `isValidIPv6()`, `isValidIPWithType()` – used for add ip-pool and reserve-ip
 
 ---
 
-## 2. Блок-схеми
+## 2. Flowcharts
 
-### 2.1 Общ поток на приложението
+### 2.1 Application Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         СТАРТИРАНЕ НА BACKEND                           │
+│                         BACKEND STARTUP                                  │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Зареждане на config.conf (или env IPINVENTORY_*)                        │
-│  host, port, db_type, db_connection, db_path / db_host, db_port, ...    │
+│  Load config.conf (or env IPINVENTORY_*)                                 │
+│  host, port, db_type, db_connection, db_path / db_host, db_port, ...     │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -98,73 +98,73 @@ src/
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  storage->init() – връзка към БД, създаване на таблици (SQLite)          │
+│  storage->init() – DB connection, create tables (SQLite)                 │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  HTTP Server listen(host, port)                                          │
-│  Регистрация на handlers: Post/Get /ip-inventory/*                       │
+│  Register handlers: Post/Get /ip-inventory/*                             │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
                          ┌──────────────────┐
-                         │  Очаква заявки   │◄──────────────────────┐
+                         │  Await requests  │◄──────────────────────┐
                          └──────────────────┘                       │
                                     │                               │
                                     ▼                               │
                     ┌───────────────────────────────┐               │
-                    │  Парсване на JSON body         │               │
-                    │  Валидация на полета           │               │
+                    │  Parse JSON body               │               │
+                    │  Validate fields               │               │
                     └───────────────────────────────┘               │
                                     │                               │
                                     ▼                               │
                     ┌───────────────────────────────┐               │
-                    │  storage->addIps / reserveIps  │               │
+                    │  storage->addIps / reserveIps │               │
                     │  / assignIps / terminateIps   │               │
                     │  / changeServiceId / getBy... │               │
                     └───────────────────────────────┘               │
                                     │                               │
                                     ▼                               │
                     ┌───────────────────────────────┐               │
-                    │  JSON отговор (200/400/500)    │───────────────┘
+                    │  JSON response (200/400/500)   │───────────────┘
                     └───────────────────────────────┘
 ```
 
-### 2.2 Поток на POST ip-pool
+### 2.2 POST ip-pool Flow
 
 ```
 POST /ip-inventory/ip-pool
          │
          ▼
-┌─────────────────────┐     НЕ     ┌────────────────────────────┐
-│ body.ipAddresses    │───────────►│ 400: Missing ipAddresses   │
-│ е масив?            │            └────────────────────────────┘
+┌─────────────────────┐     NO      ┌────────────────────────────┐
+│ body.ipAddresses    │────────────►│ 400: Missing ipAddresses   │
+│ is array?           │             └────────────────────────────┘
 └─────────────────────┘
-         │ ДА
+         │ YES
          ▼
-┌─────────────────────┐     НЕ     ┌────────────────────────────┐
-│ Всеки елемент има   │───────────►│ 400: Each item must have   │
-│ ip и ipType?        │            │ ip and ipType              │
-└─────────────────────┘            └────────────────────────────┘
-         │ ДА
+┌─────────────────────┐     NO      ┌────────────────────────────┐
+│ Each item has       │────────────►│ 400: Each item must have   │
+│ ip and ipType?      │             │ ip and ipType              │
+└─────────────────────┘             └────────────────────────────┘
+         │ YES
          ▼
-┌─────────────────────┐     НЕ     ┌────────────────────────────┐
-│ ipType = IPv4 или   │───────────►│ 400: ipType must be       │
-│ IPv6?               │            │ IPv4 or IPv6               │
-└─────────────────────┘            └────────────────────────────┘
-         │ ДА
+┌─────────────────────┐     NO      ┌────────────────────────────┐
+│ ipType = IPv4 or    │────────────►│ 400: ipType must be        │
+│ IPv6?               │             │ IPv4 or IPv6               │
+└─────────────────────┘             └────────────────────────────┘
+         │ YES
          ▼
-┌─────────────────────┐     НЕ     ┌────────────────────────────┐
-│ isValidIPWithType() │───────────►│ 400: Invalid IP address    │
-│ за всеки IP?        │            └────────────────────────────┘
+┌─────────────────────┐     NO      ┌────────────────────────────┐
+│ isValidIPWithType() │────────────►│ 400: Invalid IP address    │
+│ for each IP?       │             └────────────────────────────┘
 └─────────────────────┘
-         │ ДА
+         │ YES
          ▼
-┌─────────────────────┐     НЕ     ┌────────────────────────────┐
-│ storage->addIps()    │───────────►│ 500: <грешка от БД>        │
-└─────────────────────┘            └────────────────────────────┘
-         │ ДА
+┌─────────────────────┐     NO      ┌────────────────────────────┐
+│ storage->addIps()   │────────────►│ 500: <DB error>            │
+└─────────────────────┘             └────────────────────────────┘
+         │ YES
          ▼
 ┌─────────────────────┐
 │ 200: statusCode 0   │
@@ -172,128 +172,128 @@ POST /ip-inventory/ip-pool
 └─────────────────────┘
 ```
 
-### 2.3 Избор на Storage backend (Factory)
+### 2.3 Storage Backend Selection (Factory)
 
 ```
                     createStorage(dbConfig)
                               │
                               ▼
               ┌───────────────────────────────┐
-              │ db_type == "sqlite" ?         │──ДА──► StorageSqlite
+              │ db_type == "sqlite" ?         │──YES──► StorageSqlite
               └───────────────────────────────┘
-                              │ НЕ
+                              │ NO
                               ▼
               ┌───────────────────────────────┐
-              │ db_type == "postgresql" &&    │──ДА──► StoragePostgresql
-              │ IPINVENTORY_HAS_POSTGRESQL?   │       (ако е компилиран)
+              │ db_type == "postgresql" &&    │──YES──► StoragePostgresql
+              │ IPINVENTORY_HAS_POSTGRESQL?   │        (if compiled)
               └───────────────────────────────┘
-                              │ НЕ
+                              │ NO
                               ▼
               ┌───────────────────────────────┐
-              │ db_type in (mssql, oracle) &&  │
-              │ db_connection in (odbc, orm)?  │──ДА──► StorageOdbc (stub)
+              │ db_type in (mssql, oracle) && │
+              │ db_connection in (odbc, orm)? │──YES──► StorageOdbc (stub)
               └───────────────────────────────┘
                               │
               ┌───────────────┴───────────────┐
-              │ db_connection == ado_ole_db?  │──ДА──► StorageAdo (stub)
+              │ db_connection == ado_ole_db?  │──YES──► StorageAdo (stub)
               └───────────────────────────────┘
-                              │ НЕ
+                              │ NO
                               ▼
                          return nullptr
 ```
 
 ---
 
-## 3. База данни
+## 3. Database
 
-### 3.1 Таблица `ip_pool`
+### 3.1 Table `ip_pool`
 
-| Колона       | Тип           | Описание |
-|-------------|----------------|----------|
-| `id`        | PK, auto       | Уникален идентификатор |
-| `ip`        | VARCHAR(45)    | IP адрес (уникален) |
-| `ip_type`   | VARCHAR(4)     | `'IPv4'` или `'IPv6'` |
+| Column       | Type           | Description |
+|-------------|----------------|-------------|
+| `id`        | PK, auto       | Unique identifier |
+| `ip`        | VARCHAR(45)    | IP address (unique) |
+| `ip_type`   | VARCHAR(4)     | `'IPv4'` or `'IPv6'` |
 | `status`    | VARCHAR(10)    | `'free'` \| `'reserved'` \| `'assigned'` |
-| `service_id`| VARCHAR(255)   | Нуллабелно; при reserved/assigned – serviceId |
-| `reserved_at`   | TIMESTAMP  | Кога е резервиран |
-| `assigned_at`   | TIMESTAMP  | Кога е присвоен |
-| `created_at`    | TIMESTAMP  | Кога е добавен |
+| `service_id`| VARCHAR(255)   | Nullable; for reserved/assigned – serviceId |
+| `reserved_at`   | TIMESTAMP  | When reserved |
+| `assigned_at`   | TIMESTAMP  | When assigned |
+| `created_at`    | TIMESTAMP  | When added |
 
-### 3.2 Статуси и API
+### 3.2 Status and API
 
-| API метод | Действие върху ip_pool |
-|-----------|------------------------|
-| POST ip-pool | INSERT с status='free' |
+| API method | Action on ip_pool |
+|------------|-------------------|
+| POST ip-pool | INSERT with status='free' |
 | POST reserve-ip | UPDATE free → reserved, service_id, reserved_at |
 | POST assign-ip-serviceId | UPDATE reserved → assigned, assigned_at |
 | POST terminate-ip-serviceId | UPDATE assigned → free, service_id=NULL |
-| POST serviceId-change | UPDATE service_id от old на new |
-| GET serviceId | SELECT по service_id |
+| POST serviceId-change | UPDATE service_id from old to new |
+| GET serviceId | SELECT by service_id |
 
-### 3.3 Индекси
+### 3.3 Indexes
 
-- Уникален: `ip`
-- `(status, ip_type)` – за бързо намиране на свободни IP при reserve
-- `(service_id)` – за търсене по serviceId
+- Unique: `ip`
+- `(status, ip_type)` – for fast lookup of free IPs on reserve
+- `(service_id)` – for lookup by serviceId
 
-### 3.4 SQL скриптове за създаване
+### 3.4 SQL Creation Scripts
 
-| БД | Файл |
+| DB | File |
 |----|------|
-| SQLite | `database/sqlite/01_create_tables.sql` – изпълнява се автоматично от backend |
-| PostgreSQL | `database/postgresql/01_create_tables.sql` – ръчно: `psql -U user -d db -f ...` |
-| MSSQL | `database/mssql/01_create_tables.sql` – ръчно: sqlcmd или SSMS |
-| Oracle | `database/oracle/01_create_tables.sql` – ръчно: sqlplus или SQL Developer |
+| SQLite | `database/sqlite/01_create_tables.sql` – executed automatically by backend |
+| PostgreSQL | `database/postgresql/01_create_tables.sql` – manual: `psql -U user -d db -f ...` |
+| MSSQL | `database/mssql/01_create_tables.sql` – manual: sqlcmd or SSMS |
+| Oracle | `database/oracle/01_create_tables.sql` – manual: sqlplus or SQL Developer |
 
-### 3.5 Поддържани backend-и
+### 3.5 Supported Backends
 
-| Backend | Файл | Статус |
+| Backend | File | Status |
 |---------|------|--------|
-| SQLite | storage_sqlite.cpp | ✅ Пълен |
-| PostgreSQL | storage_postgresql.cpp | ✅ Пълен (при libpq-dev) |
+| SQLite | storage_sqlite.cpp | ✅ Full |
+| PostgreSQL | storage_postgresql.cpp | ✅ Full (with libpq-dev) |
 | ODBC (MSSQL/Oracle) | storage_odbc.cpp | ⚠️ Stub |
 | ADO/OLE DB (Windows) | storage_ado.cpp | ⚠️ Stub |
 
 ---
 
-## 4. Конфигурация
+## 4. Configuration
 
-### 4.1 Файл config.conf
+### 4.1 config.conf File
 
-Формат: `key=value`, по един ред. Редове с `#` се игнорират.
+Format: `key=value`, one per line. Lines starting with `#` are ignored.
 
-**Приоритет:** Променливите на средата `IPINVENTORY_*` презаписват стойностите от файла.
+**Priority:** Environment variables `IPINVENTORY_*` override file values.
 
-### 4.2 Опции
+### 4.2 Options
 
-| Ключ | Описание | По подразбиране |
-|------|----------|-----------------|
-| `host` | Адрес за слушане | 127.0.0.1 |
-| `port` | Порт | 8080 |
+| Key | Description | Default |
+|-----|-------------|---------|
+| `host` | Bind address | 127.0.0.1 |
+| `port` | Listen port | 8080 |
 | `db_type` | sqlite \| postgresql \| mssql \| oracle | sqlite |
-| `db_connection` | odbc \| ado_ole_db \| orm (за postgresql се игнорира) | odbc |
-| `db_path` | Път до SQLite файл | ip_inventory.db |
-| `db_connection_string` | Пълен ODBC connection string | - |
-| `db_host` | Хост на БД | - |
-| `db_port` | Порт на БД | - |
-| `db_name` | Име на база | - |
-| `db_user` | Потребител | - |
-| `db_password` | Парола | - |
+| `db_connection` | odbc \| ado_ole_db \| orm (ignored for postgresql) | odbc |
+| `db_path` | Path to SQLite file | ip_inventory.db |
+| `db_connection_string` | Full ODBC connection string | - |
+| `db_host` | DB host | - |
+| `db_port` | DB port | - |
+| `db_name` | Database name | - |
+| `db_user` | User | - |
+| `db_password` | Password | - |
 
-### 4.3 Променливи на средата
+### 4.3 Environment Variables
 
-| Променлива | Презаписва |
-|------------|------------|
-| `IPINVENTORY_CONFIG` | Път до config файл |
+| Variable | Overrides |
+|----------|-----------|
+| `IPINVENTORY_CONFIG` | Config file path |
 | `IPINVENTORY_HOST` | host |
 | `IPINVENTORY_PORT` | port |
 | `IPINVENTORY_DB_TYPE` | db_type |
 | `IPINVENTORY_DB_CONNECTION` | db_connection |
 | `IPINVENTORY_DB` | db_path |
 
-### 4.4 Примери за конфигуриране
+### 4.4 Configuration Examples
 
-**SQLite (по подразбиране):**
+**SQLite (default):**
 ```ini
 host=127.0.0.1
 port=8080
@@ -313,21 +313,21 @@ db_user=myuser
 db_password=mypass
 ```
 
-**MSSQL чрез ODBC:**
+**MSSQL via ODBC:**
 ```ini
 db_type=mssql
 db_connection=odbc
 db_connection_string=Driver={ODBC Driver 17 for SQL Server};Server=localhost,1433;Database=ipinv;Uid=user;Pwd=pass;
 ```
 
-**Oracle чрез ODBC:**
+**Oracle via ODBC:**
 ```ini
 db_type=oracle
 db_connection=odbc
 db_connection_string=Driver={Oracle in instantclient};Dbq=localhost:1521/ORCL;Uid=user;Pwd=pass;
 ```
 
-**Чрез env (без config файл):**
+**Via env (no config file):**
 ```bash
 export IPINVENTORY_HOST=0.0.0.0
 export IPINVENTORY_PORT=8888
@@ -338,34 +338,34 @@ export IPINVENTORY_DB=/var/lib/ipinv/ip_inventory.db
 
 ---
 
-## 5. Build процес и скриптове
+## 5. Build Process and Scripts
 
-### 5.1 Изисквания
+### 5.1 Requirements
 
 - **CMake** 3.14+
-- **C++ компилатор** с поддръжка на C++11 (GCC, Clang, MSVC)
-- **SQLite3** – системна библиотека или автоматично изтегляне (FetchContent)
-- **PostgreSQL** (опционално): `libpq-dev` (Linux) или PostgreSQL client (Windows)
+- **C++ compiler** with C++11 support (GCC, Clang, MSVC)
+- **SQLite3** – system library or bundled in `libs/sqlite`
+- **PostgreSQL** (optional): `libpq-dev` (Linux) or PostgreSQL client (Windows)
 
-### 5.2 Build скриптове
+### 5.2 Build Scripts
 
-В корена на проекта са създадени скриптове за бърз build:
+Build scripts are in the project root:
 
 **Linux** – `./build.sh`:
 ```bash
 ./build.sh
-# Изпълним файл: build/ip_inventory_backend
+# Executable: build/ip_inventory_backend
 ```
 
-**Windows** – `build.bat` (двоен клик или от cmd):
+**Windows** – `build.bat` (double-click or from cmd):
 ```cmd
 build.bat
-REM Изпълним файл: build\Release\ip_inventory_backend.exe
+REM Executable: build\Release\ip_inventory_backend.exe
 ```
 
-За Windows скриптът използва Visual Studio 2022 по подразбиране. За MinGW или VS 2019 – редактирай `build.bat` и промени `-G "..."` в cmake командата.
+The Windows script uses Visual Studio 2022 by default. For MinGW or VS 2019 – edit `build.bat` and change the `-G "..."` in the cmake command.
 
-### 5.3 Ръчен build процес
+### 5.3 Manual Build
 
 **Linux:**
 ```bash
@@ -373,7 +373,7 @@ mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make
-# Изпълним: ./ip_inventory_backend
+# Run: ./ip_inventory_backend
 ```
 
 **Windows (Visual Studio):**
@@ -382,7 +382,7 @@ mkdir build
 cd build
 cmake .. -G "Visual Studio 17 2022" -A x64
 cmake --build . --config Release
-REM Изпълним: build\Release\ip_inventory_backend.exe
+REM Run: build\Release\ip_inventory_backend.exe
 ```
 
 **Windows (MinGW):**
@@ -391,68 +391,68 @@ mkdir build
 cd build
 cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
 cmake --build .
-REM Изпълним: build\ip_inventory_backend.exe
+REM Run: build\ip_inventory_backend.exe
 ```
 
-### 5.4 Зависимости
+### 5.4 Dependencies
 
-Библиотеките са в `libs/` в корена на проекта:
+Libraries are in `libs/` in the project root:
 - **cpp-httplib** v0.14.3 – `libs/httplib/httplib.h`
 - **nlohmann/json** v3.11.2 – `libs/json/include/nlohmann/json.hpp`
-- **SQLite3** – `libs/sqlite/` (използва се ако системен SQLite не е намерен)
+- **SQLite3** – `libs/sqlite/` (used if system SQLite is not found)
 
-Виж `libs/README.md` за източниците.
+See `libs/README.md` for sources.
 
 ### 5.5 compile_commands.json
 
-За clangd/IDE: `CMAKE_EXPORT_COMPILE_COMMANDS=ON` е включено. След build, `compile_commands.json` е в `build/`. Създай симлинк в корена:
+For clangd/IDE: `CMAKE_EXPORT_COMPILE_COMMANDS=ON` is enabled. After build, `compile_commands.json` is in `build/`. Create a symlink in the root:
 ```bash
 ln -sf build/compile_commands.json compile_commands.json
 ```
 
 ---
 
-## 6. Тестове
+## 6. Tests
 
-### 6.1 PHP тестови скриптове
+### 6.1 PHP Test Scripts
 
-Тестовете са в `tests/php/` и използват cURL за извикване на REST API.
+Tests are in `tests/php/` and use cURL to call the REST API.
 
-**Изисквания:** PHP 7.4+ с разширение **curl**
+**Requirements:** PHP 7.4+ with **curl** extension
 
-### 6.2 Конфигурация на тестовете
+### 6.2 Test Configuration
 
-Файл `tests/php/config.php`:
-- `base_url` – по подразбиране `http://127.0.0.1:8888`
-- Промяна чрез env: `export IPINVENTORY_API_URL=http://localhost:8080`
+File `tests/php/config.php`:
+- `base_url` – default `http://127.0.0.1:8888`
+- Override via env: `export IPINVENTORY_API_URL=http://localhost:8080`
 
-### 6.3 Тестови скриптове
+### 6.3 Test Scripts
 
-| Скрипт | API метод | Описание |
-|--------|-----------|----------|
-| `test-ip-pool.php` | POST ip-pool | Добавяне на IP в pool |
-| `test-reserve-ip.php` | POST reserve-ip | Резервиране за serviceId |
-| `test-assign-ip.php` | POST assign-ip-serviceId | Присвояване на резервирани IP |
-| `test-terminate-ip.php` | POST terminate-ip-serviceId | Освобождаване на IP |
-| `test-serviceId-change.php` | POST serviceId-change | Прехвърляне към друг serviceId |
-| `test-get-serviceId.php` | GET serviceId | Проверка по serviceId |
-| `run-all.php` | Всички | Пълен сценарий (9 стъпки) |
+| Script | API method | Description |
+|--------|------------|-------------|
+| `test-ip-pool.php` | POST ip-pool | Add IPs to pool |
+| `test-reserve-ip.php` | POST reserve-ip | Reserve for serviceId |
+| `test-assign-ip.php` | POST assign-ip-serviceId | Assign reserved IPs |
+| `test-terminate-ip.php` | POST terminate-ip-serviceId | Release IPs |
+| `test-serviceId-change.php` | POST serviceId-change | Transfer to another serviceId |
+| `test-get-serviceId.php` | GET serviceId | Lookup by serviceId |
+| `run-all.php` | All | Full scenario (9 steps) |
 
-### 6.4 Изпълнение
+### 6.4 Running Tests
 
-**Преди тестване:** Стартирай backend:
+**Before testing:** Start the backend:
 ```bash
 ./build/ip_inventory_backend
-# или с config: IPINVENTORY_CONFIG=config.conf ./build/ip_inventory_backend
+# or with config: IPINVENTORY_CONFIG=config.conf ./build/ip_inventory_backend
 ```
 
-**Всички тестове (пълен сценарий):**
+**All tests (full scenario):**
 ```bash
 cd tests/php
 php run-all.php
 ```
 
-**Отделни тестове:**
+**Individual tests:**
 ```bash
 php test-ip-pool.php
 php test-reserve-ip.php
@@ -460,37 +460,38 @@ php test-assign-ip.php
 php test-terminate-ip.php
 php test-serviceId-change.php
 php test-get-serviceId.php
-php test-get-serviceId.php zzzppp   # с параметър serviceId
+php test-get-serviceId.php zzzppp   # with serviceId parameter
 ```
 
-**С различен URL:**
+**With different URL:**
 ```bash
 IPINVENTORY_API_URL=http://127.0.0.1:8080 php run-all.php
 ```
 
-### 6.5 Поток на run-all.php (9 стъпки)
+### 6.5 run-all.php Flow (9 steps)
 
-1. POST ip-pool – добавя 3 IP (2 IPv4, 1 IPv6)
-2. POST reserve-ip – резервира за serviceId `xxxyyy`, ipType `Both`
-3. GET serviceId – проверка преди assign
-4. POST assign-ip-serviceId – присвоява 2 от резервираните
-5. GET serviceId – проверка след assign
-6. POST serviceId-change – прехвърля от `xxxyyy` към `zzzppp`
-7. GET serviceId – проверка с новия serviceId
-8. POST terminate-ip-serviceId – освобождава IP
-9. GET serviceId – проверка след terminate (трябва да е празен)
+1. POST ip-pool – add 3 IPs (2 IPv4, 1 IPv6)
+2. POST reserve-ip – reserve for serviceId `xxxyyy`, ipType `Both`
+3. GET serviceId – check before assign
+4. POST assign-ip-serviceId – assign 2 of the reserved
+5. GET serviceId – check after assign
+6. POST serviceId-change – transfer from `xxxyyy` to `zzzppp`
+7. GET serviceId – check with new serviceId
+8. POST terminate-ip-serviceId – release IPs
+9. GET serviceId – check after terminate (should be empty)
 
-### 6.6 Помощни функции (api-helper.php)
+### 6.6 Helper Functions (api-helper.php)
 
-- `apiRequest($method, $path, $body)` – изпраща HTTP заявка, връща `['http_code', 'body', 'raw', 'error?']`
-- `printResult($name, $result)` – отпечатва резултат, връща true/false за успех
+- `apiRequest($method, $path, $body)` – sends HTTP request, returns `['http_code', 'body', 'raw', 'error?']`
+- `printResult($name, $result)` – prints result, returns true/false for success
 
 ---
 
-## Допълнителна документация
+## Additional Documentation
 
-- `README-backend.md` – кратко описание на backend
-- `ToDo.md` – задачи и спецификация
-- `database/SCHEMA.md` – детайлна схема на БД
-- `config.conf.example` – примерен конфигурационен файл
-- `tests/php/README.md` – описание на PHP тестовете
+- `README-bg.md` – Bulgarian version of this document
+- `README-backend.md` – brief backend overview
+- `ToDo.md` – tasks and specification
+- `database/SCHEMA.md` – detailed DB schema
+- `config.conf.example` – example configuration file
+- `tests/php/README.md` – PHP tests description
