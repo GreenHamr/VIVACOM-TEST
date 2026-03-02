@@ -3,7 +3,7 @@
 /**
  * Пълен тест на всички IP Inventory API методи (в правилния ред)
  * Изпълнение: php run-all.php
- * Backend трябва да работи на http://127.0.0.1:8080 (или задай IPINVENTORY_API_URL)
+ * Backend трябва да работи на http://127.0.0.1:8888 (или задай IPINVENTORY_API_URL)
  */
 require_once __DIR__ . '/api-helper.php';
 

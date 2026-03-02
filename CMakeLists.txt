@@ -1,4 +1,15 @@
 cmake_minimum_required(VERSION 3.14)
+
+# IP Inventory е за host (Linux/Windows), не за embedded ARM – при arm-none-eabi конфигурацията ще се провали
+if((DEFINED CMAKE_CXX_COMPILER AND CMAKE_CXX_COMPILER MATCHES "arm-none-eabi") OR
+   (DEFINED CMAKE_C_COMPILER AND CMAKE_C_COMPILER MATCHES "arm-none-eabi"))
+  message(FATAL_ERROR
+    "This project is for host (Linux/Windows), not embedded ARM.\n"
+    "Delete the build folder, then use the host compiler, e.g.:\n"
+    "  cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Release -S . -B build\n"
+    "Or run ./build.sh . In VS Code / CMake Tools: select a kit that uses g++ or clang++ for the host.")
+endif()
+
 project(ip-inventory-backend LANGUAGES CXX C DESCRIPTION "IP Inventory REST API backend (C++)")
 
 set(CMAKE_CXX_STANDARD 11)

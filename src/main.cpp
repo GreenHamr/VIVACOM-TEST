@@ -32,7 +32,7 @@ static std::string trim(const std::string& s) {
 
 struct Config {
     std::string host;
-    int port = 8080;
+    int port = 8888;
     ip_inventory::DbConfig db;
 };
 static void loadConfig(Config& c) {
@@ -103,7 +103,7 @@ std::string jsonIpAddresses(const std::vector<ip_inventory::IpEntry>& list) {
 int main() {
     Config cfg;
     cfg.host = "127.0.0.1";
-    cfg.port = 8080;
+    cfg.port = 8888;
     cfg.db.dbType = "sqlite";
     cfg.db.dbConnection = "odbc";
     cfg.db.dbPath = "ip_inventory.db";
@@ -320,7 +320,7 @@ int main() {
     if (!svr.listen(host, port)) {
         std::cerr << "Failed to listen on " << host << ":" << port << "\n";
         if (port < 1024)
-            std::cerr << "On Linux, ports below 1024 require root. Use port >= 1024 (e.g. 8080).\n";
+            std::cerr << "On Linux, ports below 1024 require root. Use port >= 1024 (e.g. 8888).\n";
         return 1;
     }
     return 0;

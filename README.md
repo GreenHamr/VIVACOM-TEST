@@ -14,6 +14,7 @@ C++ backend for IP pool management (IP address inventory) with REST API. Support
 6. [Tests](#6-tests)
 7. [Apache2 Installation and Configuration](#7-apache2-installation-and-configuration)
 8. [Web GUI](#8-web-gui)
+9. [Job: Auto-release of expired reservations](#9-job-auto-release-of-expired-reservations)
 
 ---
 
@@ -271,7 +272,7 @@ Format: `key=value`, one per line. Lines starting with `#` are ignored.
 | Key | Description | Default |
 |-----|-------------|---------|
 | `host` | Bind address | 127.0.0.1 |
-| `port` | Listen port | 8080 |
+| `port` | Listen port | 8888 |
 | `db_type` | sqlite \| postgresql \| mssql \| oracle | sqlite |
 | `db_connection` | odbc \| ado_ole_db \| orm (ignored for postgresql) | odbc |
 | `db_path` | Path to SQLite file | ip_inventory.db |
@@ -298,7 +299,7 @@ Format: `key=value`, one per line. Lines starting with `#` are ignored.
 **SQLite (default):**
 ```ini
 host=127.0.0.1
-port=8080
+port=8888
 db_type=sqlite
 db_path=ip_inventory.db
 ```
@@ -306,7 +307,7 @@ db_path=ip_inventory.db
 **PostgreSQL:**
 ```ini
 host=127.0.0.1
-port=8080
+port=8888
 db_type=postgresql
 db_host=localhost
 db_port=5432
@@ -455,7 +456,7 @@ WantedBy=multi-user.target
 If you use a different user or path, change `User`, `Group`, `WorkingDirectory` and `ExecStart`. For a different config or port, add:
 ```ini
 Environment=IPINVENTORY_CONFIG=/etc/ip-inventory/config.conf
-Environment=IPINVENTORY_PORT=8080
+Environment=IPINVENTORY_PORT=8888
 ```
 
 **3. Enable and start**
@@ -495,7 +496,7 @@ Tests are in `tests/php/` and use cURL to call the REST API.
 
 File `tests/php/config.php`:
 - `base_url` – default `http://127.0.0.1:8888`
-- Override via env: `export IPINVENTORY_API_URL=http://localhost:8080`
+- Override via env: `export IPINVENTORY_API_URL=http://localhost:8888`
 
 ### 6.3 Test Scripts
 
@@ -536,7 +537,7 @@ php test-get-serviceId.php zzzppp   # with serviceId parameter
 
 **With different URL:**
 ```bash
-IPINVENTORY_API_URL=http://127.0.0.1:8080 php run-all.php
+IPINVENTORY_API_URL=http://127.0.0.1:8888 php run-all.php
 ```
 
 ### 6.5 run-all.php Flow (9 steps)
@@ -560,7 +561,7 @@ IPINVENTORY_API_URL=http://127.0.0.1:8080 php run-all.php
 
 ## 7. Apache2 Installation and Configuration
 
-The backend listens locally (e.g. `127.0.0.1:8080`). Apache2 sits in front as a **reverse proxy** and forwards requests for `/ip-inventory/` to the C++ server.
+The backend listens locally (e.g. `127.0.0.1:8888`). Apache2 sits in front as a **reverse proxy** and forwards requests for `/ip-inventory/` to the C++ server.
 
 ### 7.1 Linux
 
@@ -582,8 +583,8 @@ sudo systemctl restart apache2
 <VirtualHost *:80>
     ServerName api.example.com
 
-    ProxyPass        /ip-inventory/ http://127.0.0.1:8080/ip-inventory/
-    ProxyPassReverse /ip-inventory/ http://127.0.0.1:8080/ip-inventory/
+    ProxyPass        /ip-inventory/ http://127.0.0.1:8888/ip-inventory/
+    ProxyPassReverse /ip-inventory/ http://127.0.0.1:8888/ip-inventory/
     RequestHeader set X-Forwarded-Proto "http"
 </VirtualHost>
 ```
@@ -602,8 +603,8 @@ sudo systemctl reload apache2
     SSLEngine on
     SSLCertificateFile     /path/to/cert.pem
     SSLCertificateKeyFile  /path/to/key.pem
-    ProxyPass        /ip-inventory/ http://127.0.0.1:8080/ip-inventory/
-    ProxyPassReverse /ip-inventory/ http://127.0.0.1:8080/ip-inventory/
+    ProxyPass        /ip-inventory/ http://127.0.0.1:8888/ip-inventory/
+    ProxyPassReverse /ip-inventory/ http://127.0.0.1:8888/ip-inventory/
     RequestHeader set X-Forwarded-Proto "https"
 </VirtualHost>
 ```
@@ -613,13 +614,13 @@ sudo systemctl reload apache2
 Install Apache HTTP Server for Windows (e.g. from [Apache Lounge](https://www.apachelounge.com/)). In the virtual host configuration:
 
 - Enable `mod_proxy` and `mod_proxy_http` (`LoadModule` directives with paths to `modules\mod_proxy.so` etc. according to your installation).
-- Add the same `ProxyPass` and `ProxyPassReverse` for `/ip-inventory/` to `http://127.0.0.1:8080/ip-inventory/`.
+- Add the same `ProxyPass` and `ProxyPassReverse` for `/ip-inventory/` to `http://127.0.0.1:8888/ip-inventory/`.
 
 Paths to modules and config files follow Windows conventions (e.g. `C:\Program Files\Apache Group\Apache2\conf\`).
 
 ### 7.3 Verification
 
-Ensure the backend is running on port 8080 (or the port set in `config.conf`). Then:
+Ensure the backend is running on port 8888 (or the port set in `config.conf`). Then:
 
 ```bash
 curl http://localhost/ip-inventory/serviceId?serviceId=test
@@ -633,7 +634,7 @@ If Apache is configured correctly, the request reaches the C++ backend and retur
 
 PHP interface for adding IP addresses to the pool via **POST /ip-inventory/ip-pool**. Files are in the `web/` directory.
 
-**Files:** `web/index.php` – form with rows for IP and type (IPv4/IPv6); sends the request to the API. `web/config.php` – API base URL (default `http://127.0.0.1:8080`). Override via env: `IPINVENTORY_API_URL`.
+**Files:** `web/index.php` – form with rows for IP and type (IPv4/IPv6); sends the request to the API. `web/config.php` – API base URL (default `http://127.0.0.1:8888`). Override via env: `IPINVENTORY_API_URL`.
 
 **Requirements:** PHP 5.6+ with **curl** extension; backend must be running on the configured URL.
 
@@ -644,4 +645,31 @@ php -S 0.0.0.0:9000 -t web
 Open in browser: `http://localhost:9000/`
 
 **Usage:** Enter one or more IP addresses and select type (IPv4/IPv6). Empty rows are ignored. Click “Add to pool” – on success a message is shown; on API error the error text is displayed.
+
+---
+
+## 9. Job: Auto-release of expired reservations
+
+The script `jobs/release-expired-reservations.php` releases reserved IPs (status='reserved') whose reservation time (`reserved_at`) is older than a given number of minutes – i.e. they were not assigned via `assign-ip-serviceId` in time.
+
+**Requirements:** PHP 5.6+ with **PDO** and **pdo_sqlite** (for SQLite) and/or **pdo_pgsql** (for PostgreSQL). Same `config.conf` as the backend (or env `IPINVENTORY_CONFIG`).
+
+**Running:**
+```bash
+# Default – reservations older than 30 minutes
+php jobs/release-expired-reservations.php
+
+# Reservations older than 60 minutes
+php jobs/release-expired-reservations.php 60
+
+# Via env
+RELEASE_OLDER_THAN_MINUTES=45 php jobs/release-expired-reservations.php
+```
+
+**Cron:** Example – every 15 minutes, release reservations older than 30 minutes:
+```cron
+*/15 * * * * php /path/to/VIVACOM-TEST/jobs/release-expired-reservations.php 30
+```
+Ensure the path to `config.conf` is correct when run from cron (e.g. set `IPINVENTORY_CONFIG=/path/to/config.conf` in the cron line).
+
 

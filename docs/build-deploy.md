@@ -73,10 +73,10 @@ cmake --build .
 IPINVENTORY_CONFIG=/etc/ip-inventory/config.conf ./build/ip_inventory_backend
 
 # Без config файл – само env
-IPINVENTORY_HOST=127.0.0.1 IPINVENTORY_PORT=8080 IPINVENTORY_DB_TYPE=sqlite IPINVENTORY_DB=./ip_inventory.db ./build/ip_inventory_backend
+IPINVENTORY_HOST=127.0.0.1 IPINVENTORY_PORT=8888 IPINVENTORY_DB_TYPE=sqlite IPINVENTORY_DB=./ip_inventory.db ./build/ip_inventory_backend
 ```
 
-След старт backend-ът слуша на конфигурирания host/port (по подразбиране `127.0.0.1:8080`). За спиране: Ctrl+C.
+След старт backend-ът слуша на конфигурирания host/port (по подразбиране `127.0.0.1:8888`). За спиране: Ctrl+C.
 
 ### 2.2 Windows
 

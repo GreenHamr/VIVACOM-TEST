@@ -1,0 +1,331 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "IP Inventory REST API",
+    "description": "API за управление на IP pool – добавяне, резервиране, присвояване и освобождаване на IP адреси по serviceId.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8888",
+      "description": "Локален backend (промени порта според config.conf)"
+    }
+  ],
+  "paths": {
+    "/ip-inventory/ip-pool": {
+      "post": {
+        "summary": "Добавяне на IP адреси в pool",
+        "operationId": "addIpPool",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IpPoolRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успех",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StatusResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Грешка в заявката (липсва ipAddresses, невалиден IP/ipType)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Грешка от сървъра/БД",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ip-inventory/reserve-ip": {
+      "post": {
+        "summary": "Резервиране на IP за serviceId",
+        "operationId": "reserveIp",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ReserveIpRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Списък с резервираните IP",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IpAddressesResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Липсва serviceId/ipType или невалиден ipType",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Грешка от сървъра/БД",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ip-inventory/assign-ip-serviceId": {
+      "post": {
+        "summary": "Присвояване на резервирани IP на serviceId",
+        "operationId": "assignIpServiceId",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AssignTerminateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успех",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StatusResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Липсва serviceId/ipAddresses или бизнес-грешка (напр. IP не са резервирани за този serviceId)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Грешка от сървъра",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ip-inventory/terminate-ip-serviceId": {
+      "post": {
+        "summary": "Освобождаване на присвоени IP за serviceId",
+        "operationId": "terminateIpServiceId",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AssignTerminateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успех",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StatusResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Липсва serviceId/ipAddresses или бизнес-грешка",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Грешка от сървъра",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ip-inventory/serviceId-change": {
+      "post": {
+        "summary": "Прехвърляне на присвоени IP от един serviceId към друг",
+        "operationId": "serviceIdChange",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ServiceIdChangeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успех",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StatusResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Липсва serviceIdOld или serviceId",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Грешка от сървъра",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ip-inventory/serviceId": {
+      "get": {
+        "summary": "Списък с IP адреси за даден serviceId",
+        "operationId": "getByServiceId",
+        "parameters": [
+          {
+            "name": "serviceId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Списък с IP (reserved + assigned) за serviceId",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IpAddressesResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Липсва query параметър serviceId",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Грешка от сървъра",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "IpEntry": {
+        "type": "object",
+        "required": ["ip", "ipType"],
+        "properties": {
+          "ip": { "type": "string", "description": "IP адрес (IPv4 или IPv6)" },
+          "ipType": { "type": "string", "enum": ["IPv4", "IPv6"] }
+        }
+      },
+      "IpPoolRequest": {
+        "type": "object",
+        "required": ["ipAddresses"],
+        "properties": {
+          "ipAddresses": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IpEntry" }
+          }
+        }
+      },
+      "ReserveIpRequest": {
+        "type": "object",
+        "required": ["serviceId", "ipType"],
+        "properties": {
+          "serviceId": { "type": "string" },
+          "ipType": { "type": "string", "enum": ["IPv4", "IPv6", "Both"] }
+        }
+      },
+      "AssignTerminateRequest": {
+        "type": "object",
+        "required": ["serviceId", "ipAddresses"],
+        "properties": {
+          "serviceId": { "type": "string" },
+          "ipAddresses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": { "ip": { "type": "string" } }
+            }
+          }
+        }
+      },
+      "ServiceIdChangeRequest": {
+        "type": "object",
+        "required": ["serviceIdOld", "serviceId"],
+        "properties": {
+          "serviceIdOld": { "type": "string" },
+          "serviceId": { "type": "string" }
+        }
+      },
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": { "type": "string", "example": "0" },
+          "statusMessage": { "type": "string", "example": "Successful operation. OK" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": { "type": "string", "example": "400" },
+          "statusMessage": { "type": "string" }
+        }
+      },
+      "IpAddressesResponse": {
+        "type": "object",
+        "properties": {
+          "ipAddresses": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IpEntry" }
+          }
+        }
+      }
+    }
+  }
+}
