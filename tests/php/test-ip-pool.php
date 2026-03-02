@@ -1,7 +1,7 @@
 #!/bin/php
 <?php
 /**
- * Тест: POST /ip-inventory/ip-pool – добавяне на IP адреси в pool
+ * Test: POST /ip-inventory/ip-pool – add IP addresses to pool
  */
 require_once __DIR__ . '/api-helper.php';
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-# IP Inventory е за host (Linux/Windows), не за embedded ARM – при arm-none-eabi конфигурацията ще се провали
+# IP Inventory is for host (Linux/Windows), not embedded ARM – reject arm-none-eabi
 if((DEFINED CMAKE_CXX_COMPILER AND CMAKE_CXX_COMPILER MATCHES "arm-none-eabi") OR
    (DEFINED CMAKE_C_COMPILER AND CMAKE_C_COMPILER MATCHES "arm-none-eabi"))
   message(FATAL_ERROR
@@ -17,7 +17,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Threads REQUIRED)
 
-# --- Локални библиотеки (libs/ в корена на проекта) ---
+# --- Local libraries (libs/ in project root) ---
 set(IPINVENTORY_LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 
 # cpp-httplib (header-only)
@@ -26,7 +26,7 @@ set(httplib_DIR ${IPINVENTORY_LIBS_DIR}/httplib)
 # nlohmann/json (header-only)
 set(json_DIR ${IPINVENTORY_LIBS_DIR}/json/include)
 
-# SQLite3: системна библиотека или bundled (libs/sqlite)
+# SQLite3: system library or bundled (libs/sqlite)
 find_package(SQLite3 QUIET)
 if(NOT SQLite3_FOUND)
   message(STATUS "SQLite3 not found, using bundled amalgamation from libs/sqlite")

@@ -1,7 +1,7 @@
 #!/bin/php
 <?php
 /**
- * Тест: POST /ip-inventory/terminate-ip-serviceId – прекратяване на присвояването
+ * Test: POST /ip-inventory/terminate-ip-serviceId – terminate assignment
  */
 require_once __DIR__ . '/api-helper.php';
 

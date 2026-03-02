@@ -1,6 +1,6 @@
 <?php
 /**
- * GUI за добавяне на IP адреси в pool – използва POST /ip-inventory/ip-pool (PHP 5.6)
+ * GUI for adding IP addresses to pool – uses POST /ip-inventory/ip-pool (PHP 5.6)
  */
 $config = require __DIR__ . '/config.php';
 $message = '';

@@ -1,7 +1,7 @@
 #!/bin/php
 <?php
 /**
- * Помощни функции за извикване на IP Inventory API
+ * Helper functions for calling the IP Inventory API
  */
 
 function apiRequest(string $method, string $path, ?array $body = null): array {

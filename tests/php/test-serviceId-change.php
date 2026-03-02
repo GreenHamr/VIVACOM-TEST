@@ -1,7 +1,7 @@
 #!/bin/php
 <?php
 /**
- * Тест: POST /ip-inventory/serviceId-change – прехвърляне от стар към нов serviceId
+ * Test: POST /ip-inventory/serviceId-change – transfer from old to new serviceId
  */
 require_once __DIR__ . '/api-helper.php';
 

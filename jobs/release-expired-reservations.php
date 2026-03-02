@@ -1,12 +1,12 @@
 <?php
 /**
- * Job: освобождава резервирани IP, ако след определено време не е извикан assign-ip-serviceId.
- * Изпълнение: php release-expired-reservations.php [минути]
- * Или от cron: php /path/to/jobs/release-expired-reservations.php 30
+ * Job: releases reserved IPs if assign-ip-serviceId is not called within a given time.
+ * Run: php release-expired-reservations.php [minutes]
+ * Or from cron: php /path/to/jobs/release-expired-reservations.php 30
  *
- * Конфиг: същият config.conf като backend (по подразбиране в родителската директория).
- * Поддържа db_type=sqlite и db_type=postgresql.
- * Изисква: PHP 5.6+ с PDO и pdo_sqlite и/или pdo_pgsql.
+ * Config: same config.conf as backend (default: parent directory).
+ * Supports db_type=sqlite and db_type=postgresql.
+ * Requires: PHP 5.6+ with PDO and pdo_sqlite and/or pdo_pgsql.
  */
 
 $minutes = 30;

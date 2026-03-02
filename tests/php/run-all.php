@@ -1,18 +1,18 @@
 #!/bin/php
 <?php
 /**
- * Пълен тест на всички IP Inventory API методи (в правилния ред)
- * Изпълнение: php run-all.php
- * Backend трябва да работи на http://127.0.0.1:8888 (или задай IPINVENTORY_API_URL)
+ * Full test of all IP Inventory API methods (in the correct order)
+ * Run: php run-all.php
+ * Backend must be running at http://127.0.0.1:8888 (or set IPINVENTORY_API_URL)
  */
 require_once __DIR__ . '/api-helper.php';
 
-echo "=== IP Inventory API – PHP тестове ===\n\n";
+echo "=== IP Inventory API – PHP tests ===\n\n";
 
 $passed = 0;
 $failed = 0;
 
-// 1. POST ip-pool – добавяне на IP
+// 1. POST ip-pool – add IPs
 $r = apiRequest('POST', 'ip-pool', [
     'ipAddresses' => [
         ['ip' => '95.44.73.19', 'ipType' => 'IPv4'],
@@ -26,9 +26,9 @@ if (printResult('1. POST ip-pool', $r)) $passed++; else $failed++;
 $r = apiRequest('POST', 'reserve-ip', ['serviceId' => 'xxxyyy', 'ipType' => 'Both']);
 if (printResult('2. POST reserve-ip', $r)) $passed++; else $failed++;
 
-// 3. GET serviceId (преди assign)
+// 3. GET serviceId (before assign)
 $r = apiRequest('GET', 'serviceId?serviceId=xxxyyy');
-if (printResult('3. GET serviceId (преди assign)', $r)) $passed++; else $failed++;
+if (printResult('3. GET serviceId (before assign)', $r)) $passed++; else $failed++;
 
 // 4. POST assign-ip-serviceId
 $r = apiRequest('POST', 'assign-ip-serviceId', [
@@ -37,15 +37,15 @@ $r = apiRequest('POST', 'assign-ip-serviceId', [
 ]);
 if (printResult('4. POST assign-ip-serviceId', $r)) $passed++; else $failed++;
 
-// 5. GET serviceId (след assign)
+// 5. GET serviceId (after assign)
 $r = apiRequest('GET', 'serviceId?serviceId=xxxyyy');
-if (printResult('5. GET serviceId (след assign)', $r)) $passed++; else $failed++;
+if (printResult('5. GET serviceId (after assign)', $r)) $passed++; else $failed++;
 
 // 6. POST serviceId-change
 $r = apiRequest('POST', 'serviceId-change', ['serviceIdOld' => 'xxxyyy', 'serviceId' => 'zzzppp']);
 if (printResult('6. POST serviceId-change', $r)) $passed++; else $failed++;
 
-// 7. GET serviceId (нов serviceId)
+// 7. GET serviceId (new serviceId)
 $r = apiRequest('GET', 'serviceId?serviceId=zzzppp');
 if (printResult('7. GET serviceId (zzzppp)', $r)) $passed++; else $failed++;
 
@@ -56,9 +56,9 @@ $r = apiRequest('POST', 'terminate-ip-serviceId', [
 ]);
 if (printResult('8. POST terminate-ip-serviceId', $r)) $passed++; else $failed++;
 
-// 9. GET serviceId (след terminate – трябва да е празен)
+// 9. GET serviceId (after terminate – should be empty)
 $r = apiRequest('GET', 'serviceId?serviceId=zzzppp');
-if (printResult('9. GET serviceId (след terminate)', $r)) $passed++; else $failed++;
+if (printResult('9. GET serviceId (after terminate)', $r)) $passed++; else $failed++;
 
-echo "\n=== Резултат: $passed успешни, $failed неуспешни ===\n";
+echo "\n=== Result: $passed passed, $failed failed ===\n";
 exit($failed > 0 ? 1 : 0);

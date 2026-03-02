@@ -1,6 +1,6 @@
 /**
- * IP Inventory REST API – backend с пълна имплементация на точка 3.
- * Конфиг: config.conf (host, port, db_path) или env IPINVENTORY_*.
+ * IP Inventory REST API – backend with full implementation (point 3).
+ * Config: config.conf (host, port, db_path) or env IPINVENTORY_*.
  */
 
 #include <cstdlib>

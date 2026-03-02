@@ -1,7 +1,7 @@
 #!/bin/php
 <?php
 /**
- * Тест: POST /ip-inventory/assign-ip-serviceId – присвояване на IP към serviceId
+ * Test: POST /ip-inventory/assign-ip-serviceId – assign IP to serviceId
  */
 require_once __DIR__ . '/api-helper.php';
 

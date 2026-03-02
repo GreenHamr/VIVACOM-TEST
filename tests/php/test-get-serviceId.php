@@ -1,7 +1,7 @@
 #!/bin/php
 <?php
 /**
- * Тест: GET /ip-inventory/serviceId?serviceId=xxx – проверка по serviceId
+ * Test: GET /ip-inventory/serviceId?serviceId=xxx – check by serviceId
  */
 require_once __DIR__ . '/api-helper.php';
 

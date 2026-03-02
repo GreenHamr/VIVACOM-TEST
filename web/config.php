@@ -1,6 +1,6 @@
 <?php
 /**
- * Конфигурация за web GUI на IP Inventory (PHP 5.6)
+ * Configuration for IP Inventory web GUI (PHP 5.6)
  */
 $url = getenv('IPINVENTORY_API_URL');
 return array(
