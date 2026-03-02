@@ -10,8 +10,10 @@ C++ backend for IP pool management (IP address inventory) with REST API. Support
 2. [Flowcharts](#2-flowcharts)
 3. [Database](#3-database)
 4. [Configuration](#4-configuration)
-5. [Build Process and Scripts](#5-build-process-and-scripts)
+5. [Build Process and Scripts](#5-build-process-and-scripts) (incl. [systemd service](#56-running-as-a-systemd-service-linux))
 6. [Tests](#6-tests)
+7. [Apache2 Installation and Configuration](#7-apache2-installation-and-configuration)
+8. [Web GUI](#8-web-gui)
 
 ---
 
@@ -410,6 +412,75 @@ For clangd/IDE: `CMAKE_EXPORT_COMPILE_COMMANDS=ON` is enabled. After build, `com
 ln -sf build/compile_commands.json compile_commands.json
 ```
 
+### 5.6 Running as a systemd service (Linux)
+
+To run the backend as a persistent service on Linux, use **systemd**.
+
+**1. Prepare**
+
+- Copy the executable and config to a directory, e.g. `/opt/ip-inventory/`:
+  ```bash
+  sudo mkdir -p /opt/ip-inventory
+  sudo cp build/ip_inventory_backend /opt/ip-inventory/
+  sudo cp config.conf /opt/ip-inventory/
+  ```
+- (Optional) Create a dedicated user for the service:
+  ```bash
+  sudo useradd -r -s /bin/false ipinv
+  sudo chown -R ipinv:ipinv /opt/ip-inventory
+  ```
+
+**2. systemd unit file**
+
+Create `/etc/systemd/system/ip_inventory_backend.service` with:
+
+```ini
+[Unit]
+Description=IP Inventory REST API Backend
+After=network.target
+
+[Service]
+Type=simple
+User=ipinv
+Group=ipinv
+WorkingDirectory=/opt/ip-inventory
+ExecStart=/opt/ip-inventory/ip_inventory_backend
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+If you use a different user or path, change `User`, `Group`, `WorkingDirectory` and `ExecStart`. For a different config or port, add:
+```ini
+Environment=IPINVENTORY_CONFIG=/etc/ip-inventory/config.conf
+Environment=IPINVENTORY_PORT=8080
+```
+
+**3. Enable and start**
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable ip_inventory_backend
+sudo systemctl start ip_inventory_backend
+```
+
+**4. Service control**
+
+```bash
+sudo systemctl start ip_inventory_backend    # start
+sudo systemctl stop ip_inventory_backend     # stop
+sudo systemctl restart ip_inventory_backend  # restart
+sudo systemctl status ip_inventory_backend   # status
+```
+
+**5. Logs**
+
+```bash
+journalctl -u ip_inventory_backend -f
+```
+
 ---
 
 ## 6. Tests
@@ -487,11 +558,90 @@ IPINVENTORY_API_URL=http://127.0.0.1:8080 php run-all.php
 
 ---
 
-## Additional Documentation
+## 7. Apache2 Installation and Configuration
 
-- `README-bg.md` – Bulgarian version of this document
-- `README-backend.md` – brief backend overview
-- `ToDo.md` – tasks and specification
-- `database/SCHEMA.md` – detailed DB schema
-- `config.conf.example` – example configuration file
-- `tests/php/README.md` – PHP tests description
+The backend listens locally (e.g. `127.0.0.1:8080`). Apache2 sits in front as a **reverse proxy** and forwards requests for `/ip-inventory/` to the C++ server.
+
+### 7.1 Linux
+
+**Install (Debian/Ubuntu):**
+```bash
+sudo apt update
+sudo apt install apache2
+```
+
+**Enable proxy modules:**
+```bash
+sudo a2enmod proxy proxy_http
+sudo systemctl restart apache2
+```
+
+**Virtual host configuration** – create a file (e.g. `/etc/apache2/sites-available/ip-inventory.conf`):
+
+```apache
+<VirtualHost *:80>
+    ServerName api.example.com
+
+    ProxyPass        /ip-inventory/ http://127.0.0.1:8080/ip-inventory/
+    ProxyPassReverse /ip-inventory/ http://127.0.0.1:8080/ip-inventory/
+    RequestHeader set X-Forwarded-Proto "http"
+</VirtualHost>
+```
+
+Enable the site and reload Apache:
+```bash
+sudo a2ensite ip-inventory.conf
+sudo systemctl reload apache2
+```
+
+**HTTPS (SSL handled by Apache):** add a virtual host for port 443 with `SSLEngine on`, `SSLCertificateFile`, `SSLCertificateKeyFile` and the same `ProxyPass`/`ProxyPassReverse`; set `RequestHeader set X-Forwarded-Proto "https"`. Example:
+
+```apache
+<VirtualHost *:443>
+    ServerName api.example.com
+    SSLEngine on
+    SSLCertificateFile     /path/to/cert.pem
+    SSLCertificateKeyFile  /path/to/key.pem
+    ProxyPass        /ip-inventory/ http://127.0.0.1:8080/ip-inventory/
+    ProxyPassReverse /ip-inventory/ http://127.0.0.1:8080/ip-inventory/
+    RequestHeader set X-Forwarded-Proto "https"
+</VirtualHost>
+```
+
+### 7.2 Windows
+
+Install Apache HTTP Server for Windows (e.g. from [Apache Lounge](https://www.apachelounge.com/)). In the virtual host configuration:
+
+- Enable `mod_proxy` and `mod_proxy_http` (`LoadModule` directives with paths to `modules\mod_proxy.so` etc. according to your installation).
+- Add the same `ProxyPass` and `ProxyPassReverse` for `/ip-inventory/` to `http://127.0.0.1:8080/ip-inventory/`.
+
+Paths to modules and config files follow Windows conventions (e.g. `C:\Program Files\Apache Group\Apache2\conf\`).
+
+### 7.3 Verification
+
+Ensure the backend is running on port 8080 (or the port set in `config.conf`). Then:
+
+```bash
+curl http://localhost/ip-inventory/serviceId?serviceId=test
+```
+
+If Apache is configured correctly, the request reaches the C++ backend and returns JSON (e.g. `{"ipAddresses":[], ...}` or an error with `statusCode`).
+
+---
+
+## 8. Web GUI
+
+PHP interface for adding IP addresses to the pool via **POST /ip-inventory/ip-pool**. Files are in the `web/` directory.
+
+**Files:** `web/index.php` – form with rows for IP and type (IPv4/IPv6); sends the request to the API. `web/config.php` – API base URL (default `http://127.0.0.1:8080`). Override via env: `IPINVENTORY_API_URL`.
+
+**Requirements:** PHP 5.6+ with **curl** extension; backend must be running on the configured URL.
+
+**Running:** With Apache – put `web/` in DocumentRoot or as a subdirectory and open `index.php`. With PHP built-in server from the project root:
+```bash
+php -S 0.0.0.0:9000 -t web
+```
+Open in browser: `http://localhost:9000/`
+
+**Usage:** Enter one or more IP addresses and select type (IPv4/IPv6). Empty rows are ignored. Click “Add to pool” – on success a message is shown; on API error the error text is displayed.
+
