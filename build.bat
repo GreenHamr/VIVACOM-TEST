@@ -16,6 +16,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+cmake --build . --target clean --config Release 2>nul
 cmake --build . --config Release
 if errorlevel 1 (
     echo Build failed.

@@ -22,6 +22,7 @@ fi
 mkdir -p build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="${CXX}"
+cmake --build . --target clean 2>/dev/null || true
 cmake --build .
 echo ""
 echo "Build complete. Executable: $(pwd)/ip_inventory_backend"
