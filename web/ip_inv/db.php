@@ -1,6 +1,6 @@
 <?php
 /**
- * PostgreSQL connection and schema init for IP Inventory (web/ip_inv).
+ * PostgreSQL connection and schema init for IP Inventory (ip_inv under document root).
  */
 
 function ip_inv_get_pdo($config) {

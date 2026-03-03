@@ -23,37 +23,67 @@ try {
     exit;
 }
 
-// Path from rewrite __path param, or from REQUEST_URI relative to this script's directory
-if (isset($_GET['__path']) && $_GET['__path'] !== '') {
+// Path: 1) query __path, 2) PATH_INFO, 3) proxy header X-Original-URL / X-Rewrite-URL, 4) REQUEST_URI minus script base
+$path = '';
+if (isset($_GET['__path']) && is_string($_GET['__path']) && trim($_GET['__path']) !== '') {
     $path = trim($_GET['__path'], '/');
-} else {
-    $basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-    $requestUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
-    $path = parse_url($requestUri, PHP_URL_PATH);
-    if ($path === false) $path = '';
-    $path = rawurldecode($path);
-    if ($basePath !== '' && strpos($path, $basePath) === 0) {
-        $path = substr($path, strlen($basePath));
+}
+if ($path === '' && isset($_SERVER['PATH_INFO']) && is_string($_SERVER['PATH_INFO'])) {
+    $path = trim($_SERVER['PATH_INFO'], '/');
+}
+if ($path === '' && function_exists('apache_request_headers')) {
+    $headers = apache_request_headers();
+    $orig = isset($headers['X-Original-URL']) ? $headers['X-Original-URL'] : (isset($headers['X-Rewrite-URL']) ? $headers['X-Rewrite-URL'] : '');
+    if ($orig !== '') {
+        $path = parse_url($orig, PHP_URL_PATH);
+        if ($path !== false && $path !== null) {
+            $path = trim(rawurldecode($path), '/');
+            $basePath = isset($_SERVER['SCRIPT_NAME']) ? rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') : '';
+            if ($basePath !== '' && strpos($path, $basePath) === 0) {
+                $path = trim(substr($path, strlen($basePath)), '/');
+            }
+        } else {
+            $path = '';
+        }
     }
-    $path = trim($path, '/');
+}
+if ($path === '' && isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI'])) {
+    $requestUri = $_SERVER['REQUEST_URI'];
+    $path = parse_url($requestUri, PHP_URL_PATH);
+    if ($path !== false && $path !== null) {
+        $path = trim(rawurldecode($path), '/');
+        $basePath = isset($_SERVER['SCRIPT_NAME']) ? trim(rtrim(dirname($_SERVER['SCRIPT_NAME']), '/'), '/') : '';
+        if ($basePath !== '') {
+            if ($path === $basePath) {
+                $path = '';
+            } elseif (strpos($path, $basePath . '/') === 0) {
+                $path = substr($path, strlen($basePath) + 1);
+            }
+        } elseif (strpos($path, 'ip_inv/') === 0) {
+            $path = substr($path, 7);
+        }
+    } else {
+        $path = '';
+    }
 }
 $method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
 
-if ($path === 'ip-inventory/ip-pool' && $method === 'POST') {
+if ($path === 'ip-pool' && $method === 'POST') {
     handle_post_ip_pool($pdo);
-} elseif ($path === 'ip-inventory/reserve-ip' && $method === 'POST') {
+} elseif ($path === 'reserve-ip' && $method === 'POST') {
     handle_post_reserve_ip($pdo);
-} elseif ($path === 'ip-inventory/assign-ip-serviceId' && $method === 'POST') {
+} elseif ($path === 'assign-ip-serviceId' && $method === 'POST') {
     handle_post_assign_ip($pdo);
-} elseif ($path === 'ip-inventory/terminate-ip-serviceId' && $method === 'POST') {
+} elseif ($path === 'terminate-ip-serviceId' && $method === 'POST') {
     handle_post_terminate_ip($pdo);
-} elseif ($path === 'ip-inventory/serviceId-change' && $method === 'POST') {
+} elseif ($path === 'serviceId-change' && $method === 'POST') {
     handle_post_service_id_change($pdo);
-} elseif ($path === 'ip-inventory/serviceId' && $method === 'GET') {
+} elseif ($path === 'serviceId' && $method === 'GET') {
     handle_get_service_id($pdo);
 } else {
     json_response(404, '404', 'Not Found');
 }
+
 
 function json_response($statusCode, $code, $message, $extra = array()) {
     http_response_code($statusCode);

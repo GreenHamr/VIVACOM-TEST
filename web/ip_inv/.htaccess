@@ -1,4 +1,4 @@
-# Route all requests to index.php so paths like ip-inventory/ip-pool work
+# Route all requests to index.php (path prefix from config: api_path, default ip-inventory)
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteCond %{REQUEST_FILENAME} !-f
