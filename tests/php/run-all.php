@@ -3,7 +3,8 @@
 /**
  * Full test of all IP Inventory API methods (in the correct order)
  * Run: php run-all.php
- * Backend must be running at http://127.0.0.1:8888 (or set IPINVENTORY_API_URL)
+ *
+ * Config: api_url and api_path are read from config.conf in project root only.
  */
 require_once __DIR__ . '/api-helper.php';
 

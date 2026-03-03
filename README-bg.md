@@ -46,7 +46,7 @@ src/
 
 ### 1.3 Основен поток на изпълнение
 
-1. **Стартиране** – `main()` зарежда конфигурация от `config.conf` или env променливи
+1. **Стартиране** – `main()` зарежда конфигурация само от `config.conf`
 2. **Инициализация** – `createStorage()` създава подходящ storage backend според `db_type` и `db_connection`
 3. **Подключване към БД** – `storage->init()` инициализира връзката (при SQLite – създава таблиците ако липсват)
 4. **HTTP сървър** – cpp-httplib слуша на `host:port` и обслужва заявки под `/ip-inventory/*`
@@ -90,7 +90,7 @@ src/
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Зареждане на config.conf (или env IPINVENTORY_*)                        │
+│  Зареждане само от config.conf                                         │
 │  host, port, db_type, db_connection, db_path / db_host, db_port, ...    │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -265,7 +265,7 @@ POST /ip-inventory/ip-pool
 
 Формат: `key=value`, по един ред. Редове с `#` се игнорират.
 
-**Приоритет:** Променливите на средата `IPINVENTORY_*` презаписват стойностите от файла.
+**Всички настройки се четат само от този файл** (без променливи на средата).
 
 ### 4.2 Опции
 
@@ -283,18 +283,7 @@ POST /ip-inventory/ip-pool
 | `db_user` | Потребител | - |
 | `db_password` | Парола | - |
 
-### 4.3 Променливи на средата
-
-| Променлива | Презаписва |
-|------------|------------|
-| `IPINVENTORY_CONFIG` | Път до config файл |
-| `IPINVENTORY_HOST` | host |
-| `IPINVENTORY_PORT` | port |
-| `IPINVENTORY_DB_TYPE` | db_type |
-| `IPINVENTORY_DB_CONNECTION` | db_connection |
-| `IPINVENTORY_DB` | db_path |
-
-### 4.4 Примери за конфигуриране
+### 4.3 Примери за конфигуриране
 
 **SQLite (по подразбиране):**
 ```ini
@@ -330,14 +319,7 @@ db_connection=odbc
 db_connection_string=Driver={Oracle in instantclient};Dbq=localhost:1521/ORCL;Uid=user;Pwd=pass;
 ```
 
-**Чрез env (без config файл):**
-```bash
-export IPINVENTORY_HOST=0.0.0.0
-export IPINVENTORY_PORT=8888
-export IPINVENTORY_DB_TYPE=sqlite
-export IPINVENTORY_DB=/var/lib/ipinv/ip_inventory.db
-./ip_inventory_backend
-```
+Редактирай `config.conf` в същата директория (или откъдето се стартира бинарният файл), за да зададеш host, port и БД.
 
 ---
 
@@ -455,8 +437,7 @@ WantedBy=multi-user.target
 
 Ако използваш друг потребител или път, промени `User`, `Group`, `WorkingDirectory` и `ExecStart`. За различен конфиг или порт може да добавиш реда:
 ```ini
-Environment=IPINVENTORY_CONFIG=/etc/ip-inventory/config.conf
-Environment=IPINVENTORY_PORT=8888
+# Конфигурацията се чете от config.conf в WorkingDirectory
 ```
 
 **3. Активиране и стартиране**
@@ -496,7 +477,7 @@ journalctl -u ip_inventory_backend -f
 
 Файл `tests/php/config.php`:
 - `base_url` – по подразбиране `http://127.0.0.1:8888`
-- Промяна чрез env: `export IPINVENTORY_API_URL=http://localhost:8888`
+- Задай `api_url` в `config.conf` в корена на проекта за базов URL на API.
 
 ### 6.3 Тестови скриптове
 
@@ -515,7 +496,7 @@ journalctl -u ip_inventory_backend -f
 **Преди тестване:** Стартирай backend:
 ```bash
 ./build/ip_inventory_backend
-# или с config: IPINVENTORY_CONFIG=config.conf ./build/ip_inventory_backend
+# Конфигурацията се чете от config.conf в текущата директория
 ```
 
 **Всички тестове (пълен сценарий):**
@@ -537,7 +518,8 @@ php test-get-serviceId.php zzzppp   # с параметър serviceId
 
 **С различен URL:**
 ```bash
-IPINVENTORY_API_URL=http://127.0.0.1:8888 php run-all.php
+php run-all.php
+# api_url и api_path идват от config.conf
 ```
 
 ### 6.5 Поток на run-all.php (9 стъпки)
@@ -634,7 +616,7 @@ curl http://localhost/ip-inventory/serviceId?serviceId=test
 
 PHP интерфейс за добавяне на IP адреси в pool чрез метода **POST /ip-inventory/ip-pool**. Файловете са в директория `web/`.
 
-**Файлове:** `web/index.php` – форма с редове за IP и тип (IPv4/IPv6); изпраща заявка към API. `web/config.php` – базов URL на API (по подразбиране `http://127.0.0.1:8888`). Промяна чрез env: `IPINVENTORY_API_URL`.
+**Файлове:** `web/index.php` – форма с редове за IP и тип (IPv4/IPv6); изпраща заявка към API. `web/config.php` – базов URL на API (по подразбиране `http://127.0.0.1:8888`). Задай `api_url` в `config.conf`.
 
 **Изисквания:** PHP 5.6+ с разширение **curl**; backend да работи на конфигурирания URL.
 
@@ -652,7 +634,7 @@ php -S 0.0.0.0:9000 -t web
 
 Скриптът `jobs/release-expired-reservations.php` освобождава резервирани IP адреси (status='reserved'), чието време на резервация (`reserved_at`) е по-старо от зададения брой минути – т.е. не са присвоени чрез `assign-ip-serviceId` в срок.
 
-**Изисквания:** PHP 5.6+ с **PDO** и **pdo_sqlite** (за SQLite) и/или **pdo_pgsql** (за PostgreSQL). Същият `config.conf` като backend (или env `IPINVENTORY_CONFIG`).
+**Изисквания:** PHP 5.6+ с **PDO** и **pdo_sqlite** (за SQLite) и/или **pdo_pgsql** (за PostgreSQL). Същият `config.conf` като backend .
 
 **Изпълнение:**
 ```bash
@@ -662,13 +644,14 @@ php jobs/release-expired-reservations.php
 # Резервации по-стари от 60 минути
 php jobs/release-expired-reservations.php 60
 
-# Чрез env
-RELEASE_OLDER_THAN_MINUTES=45 php jobs/release-expired-reservations.php
+# По избор: задай в config.conf
+# Задай release_older_than_minutes в config.conf или подай минути като аргумент:
+php jobs/release-expired-reservations.php 45
 ```
 
 **Cron:** Пример – на всеки 15 минути, освобождаване на резервации по-стари от 30 минути:
 ```cron
 */15 * * * * php /path/to/VIVACOM-TEST/jobs/release-expired-reservations.php 30
 ```
-Увери се, че при пускане от cron пътят до `config.conf` е правилен (напр. задай `IPINVENTORY_CONFIG=/path/to/config.conf` в cron реда).
+Стартирай job-а от корена на проекта (или увери се, че `config.conf` е в родителската директория на `jobs/` при пускане от cron).
 

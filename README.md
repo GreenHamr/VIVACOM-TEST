@@ -46,7 +46,7 @@ src/
 
 ### 1.3 Main Execution Flow
 
-1. **Startup** – `main()` loads configuration from `config.conf` or environment variables
+1. **Startup** – `main()` loads configuration from `config.conf` only
 2. **Initialization** – `createStorage()` creates the appropriate storage backend based on `db_type` and `db_connection`
 3. **Database Connection** – `storage->init()` initializes the connection (for SQLite – creates tables if missing)
 4. **HTTP Server** – cpp-httplib listens on `host:port` and serves requests under `/ip-inventory/*`
@@ -90,7 +90,7 @@ src/
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Load config.conf (or env IPINVENTORY_*)                                 │
+│  Load config.conf only                                                 │
 │  host, port, db_type, db_connection, db_path / db_host, db_port, ...     │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -265,7 +265,7 @@ POST /ip-inventory/ip-pool
 
 Format: `key=value`, one per line. Lines starting with `#` are ignored.
 
-**Priority:** Environment variables `IPINVENTORY_*` override file values.
+**All configuration is read from this file only** (no environment variables).
 
 ### 4.2 Options
 
@@ -283,18 +283,7 @@ Format: `key=value`, one per line. Lines starting with `#` are ignored.
 | `db_user` | User | - |
 | `db_password` | Password | - |
 
-### 4.3 Environment Variables
-
-| Variable | Overrides |
-|----------|-----------|
-| `IPINVENTORY_CONFIG` | Config file path |
-| `IPINVENTORY_HOST` | host |
-| `IPINVENTORY_PORT` | port |
-| `IPINVENTORY_DB_TYPE` | db_type |
-| `IPINVENTORY_DB_CONNECTION` | db_connection |
-| `IPINVENTORY_DB` | db_path |
-
-### 4.4 Configuration Examples
+### 4.3 Configuration Examples
 
 **SQLite (default):**
 ```ini
@@ -330,14 +319,7 @@ db_connection=odbc
 db_connection_string=Driver={Oracle in instantclient};Dbq=localhost:1521/ORCL;Uid=user;Pwd=pass;
 ```
 
-**Via env (no config file):**
-```bash
-export IPINVENTORY_HOST=0.0.0.0
-export IPINVENTORY_PORT=8888
-export IPINVENTORY_DB_TYPE=sqlite
-export IPINVENTORY_DB=/var/lib/ipinv/ip_inventory.db
-./ip_inventory_backend
-```
+Edit `config.conf` in the same directory (or where the binary is run from) to set host, port, and database.
 
 ---
 
@@ -455,8 +437,7 @@ WantedBy=multi-user.target
 
 If you use a different user or path, change `User`, `Group`, `WorkingDirectory` and `ExecStart`. For a different config or port, add:
 ```ini
-Environment=IPINVENTORY_CONFIG=/etc/ip-inventory/config.conf
-Environment=IPINVENTORY_PORT=8888
+# Config is read from config.conf in WorkingDirectory
 ```
 
 **3. Enable and start**
@@ -496,7 +477,7 @@ Tests are in `tests/php/` and use cURL to call the REST API.
 
 File `tests/php/config.php`:
 - `base_url` – default `http://127.0.0.1:8888`
-- Override via env: `export IPINVENTORY_API_URL=http://localhost:8888`
+- Set `api_url` in project root `config.conf` to change the API base URL.
 
 ### 6.3 Test Scripts
 
@@ -515,7 +496,7 @@ File `tests/php/config.php`:
 **Before testing:** Start the backend:
 ```bash
 ./build/ip_inventory_backend
-# or with config: IPINVENTORY_CONFIG=config.conf ./build/ip_inventory_backend
+# Config is read from config.conf in the current directory
 ```
 
 **All tests (full scenario):**
@@ -537,7 +518,8 @@ php test-get-serviceId.php zzzppp   # with serviceId parameter
 
 **With different URL:**
 ```bash
-IPINVENTORY_API_URL=http://127.0.0.1:8888 php run-all.php
+php run-all.php
+# API base URL and path come from config.conf (api_url, api_path)
 ```
 
 ### 6.5 run-all.php Flow (9 steps)
@@ -634,7 +616,7 @@ If Apache is configured correctly, the request reaches the C++ backend and retur
 
 PHP interface for adding IP addresses to the pool via **POST /ip-inventory/ip-pool**. Files are in the `web/` directory.
 
-**Files:** `web/index.php` – form with rows for IP and type (IPv4/IPv6); sends the request to the API. `web/config.php` – API base URL (default `http://127.0.0.1:8888`). Override via env: `IPINVENTORY_API_URL`.
+**Files:** `web/index.php` – form with rows for IP and type (IPv4/IPv6); sends the request to the API. `web/config.php` – API base URL (default `http://127.0.0.1:8888`). Set `api_url` in `config.conf`.
 
 **Requirements:** PHP 5.6+ with **curl** extension; backend must be running on the configured URL.
 
@@ -652,7 +634,7 @@ Open in browser: `http://localhost:9000/`
 
 The script `jobs/release-expired-reservations.php` releases reserved IPs (status='reserved') whose reservation time (`reserved_at`) is older than a given number of minutes – i.e. they were not assigned via `assign-ip-serviceId` in time.
 
-**Requirements:** PHP 5.6+ with **PDO** and **pdo_sqlite** (for SQLite) and/or **pdo_pgsql** (for PostgreSQL). Same `config.conf` as the backend (or env `IPINVENTORY_CONFIG`).
+**Requirements:** PHP 5.6+ with **PDO** and **pdo_sqlite** (for SQLite) and/or **pdo_pgsql** (for PostgreSQL). Same `config.conf` as the backend .
 
 **Running:**
 ```bash
@@ -662,14 +644,15 @@ php jobs/release-expired-reservations.php
 # Reservations older than 60 minutes
 php jobs/release-expired-reservations.php 60
 
-# Via env
-RELEASE_OLDER_THAN_MINUTES=45 php jobs/release-expired-reservations.php
+# Optional: set in config.conf
+# Set release_older_than_minutes in config.conf, or pass minutes as argument:
+php jobs/release-expired-reservations.php 45
 ```
 
 **Cron:** Example – every 15 minutes, release reservations older than 30 minutes:
 ```cron
 */15 * * * * php /path/to/VIVACOM-TEST/jobs/release-expired-reservations.php 30
 ```
-Ensure the path to `config.conf` is correct when run from cron (e.g. set `IPINVENTORY_CONFIG=/path/to/config.conf` in the cron line).
+Run the job from the project root (or ensure `config.conf` is in the parent directory of `jobs/` when run from cron).
 
 

@@ -1,6 +1,6 @@
 /**
  * IP Inventory REST API – backend with full implementation (point 3).
- * Config: config.conf (host, port, db_path) or env IPINVENTORY_*.
+ * Config: all settings from config.conf only (no environment variables).
  */
 
 #include <cstdlib>
@@ -18,11 +18,6 @@ using json = nlohmann::json;
 
 namespace {
 
-const char* getEnv(const char* name, const char* defaultVal) {
-    const char* v = std::getenv(name);
-    return v && v[0] ? v : defaultVal;
-}
-
 static std::string trim(const std::string& s) {
     auto start = s.find_first_not_of(" \t\r\n");
     if (start == std::string::npos) return std::string();
@@ -36,7 +31,7 @@ struct Config {
     ip_inventory::DbConfig db;
 };
 static void loadConfig(Config& c) {
-    std::string path = getEnv("IPINVENTORY_CONFIG", "config.conf");
+    std::string path = "config.conf";
     std::ifstream f(path);
     if (!f.is_open()) return;
     std::string line;
@@ -62,23 +57,13 @@ static void loadConfig(Config& c) {
 }
 
 std::string getHost(const Config& c) {
-    const char* e = getEnv("IPINVENTORY_HOST", nullptr);
-    if (e && e[0]) return std::string(e);
     return c.host.empty() ? "127.0.0.1" : c.host;
 }
 int getPort(const Config& c) {
-    const char* e = getEnv("IPINVENTORY_PORT", nullptr);
-    if (e && e[0]) { try { int p = std::stoi(e); if (p > 0 && p < 65536) return p; } catch (...) {} }
     return c.port;
 }
 ip_inventory::DbConfig getDbConfig(const Config& c) {
     ip_inventory::DbConfig d = c.db;
-    const char* e = getEnv("IPINVENTORY_DB_TYPE", nullptr);
-    if (e && e[0]) d.dbType = e;
-    e = getEnv("IPINVENTORY_DB_CONNECTION", nullptr);
-    if (e && e[0]) d.dbConnection = e;
-    e = getEnv("IPINVENTORY_DB", nullptr);
-    if (e && e[0]) d.dbPath = e;
     if (d.dbType.empty()) d.dbType = "sqlite";
     if (d.dbConnection.empty()) d.dbConnection = "odbc";
     if (d.dbPath.empty() && d.dbType == "sqlite") d.dbPath = "ip_inventory.db";

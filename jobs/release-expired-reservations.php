@@ -4,24 +4,12 @@
  * Run: php release-expired-reservations.php [minutes]
  * Or from cron: php /path/to/jobs/release-expired-reservations.php 30
  *
- * Config: same config.conf as backend (default: parent directory).
- * Supports db_type=sqlite and db_type=postgresql.
+ * Config: all values from config.conf in parent directory only (no environment variables).
+ * Set release_older_than_minutes in config.conf. CLI argument overrides when given.
  * Requires: PHP 5.6+ with PDO and pdo_sqlite and/or pdo_pgsql.
  */
 
-$minutes = 30;
-if (isset($argv[1]) && is_numeric($argv[1]) && (int)$argv[1] > 0) {
-    $minutes = (int)$argv[1];
-}
-$envMinutes = getenv('RELEASE_OLDER_THAN_MINUTES');
-if ($envMinutes !== false && $envMinutes !== '' && is_numeric($envMinutes) && (int)$envMinutes > 0) {
-    $minutes = (int)$envMinutes;
-}
-
-$configPath = getenv('IPINVENTORY_CONFIG');
-if ($configPath === false || $configPath === '') {
-    $configPath = dirname(__DIR__) . '/config.conf';
-}
+$configPath = dirname(__DIR__) . '/config.conf';
 if (!is_readable($configPath)) {
     fwrite(STDERR, "Error: Config not found or not readable: " . $configPath . "\n");
     exit(1);
@@ -31,6 +19,15 @@ $config = parseConfig($configPath);
 $dbType = isset($config['db_type']) ? strtolower(trim($config['db_type'])) : 'sqlite';
 if ($dbType === '') {
     $dbType = 'sqlite';
+}
+
+$minutes = 30;
+if (isset($config['release_older_than_minutes']) && is_numeric(trim($config['release_older_than_minutes'])) {
+    $m = (int)trim($config['release_older_than_minutes']);
+    if ($m > 0) $minutes = $m;
+}
+if (isset($argv[1]) && is_numeric($argv[1]) && (int)$argv[1] > 0) {
+    $minutes = (int)$argv[1];
 }
 
 $drivers = extension_loaded('pdo') ? PDO::getAvailableDrivers() : array();

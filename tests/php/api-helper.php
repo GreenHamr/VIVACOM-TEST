@@ -6,7 +6,10 @@
 
 function apiRequest(string $method, string $path, ?array $body = null): array {
     $config = require __DIR__ . '/config.php';
-    $url = rtrim($config['base_url'], '/') . '/ip-inventory/' . ltrim($path, '/');
+    $base = rtrim($config['base_url'], '/');
+    $apiPath = isset($config['api_path']) ? trim($config['api_path']) : 'ip-inventory';
+    if ($apiPath === '') $apiPath = 'ip-inventory';
+    $url = $base . '/' . $apiPath . '/' . ltrim($path, '/');
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [

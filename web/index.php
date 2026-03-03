@@ -104,6 +104,6 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
         </table>
         <button type="submit">Добави в pool</button>
     </form>
-    <p class="hint">Празните редове се пропускат. API: <?php echo htmlspecialchars($config['base_url'], ENT_QUOTES, 'UTF-8'); ?> (промяна чрез IPINVENTORY_API_URL)</p>
+    <p class="hint">Празните редове се пропускат. API: <?php echo htmlspecialchars($config['base_url'], ENT_QUOTES, 'UTF-8'); ?> (задава се в config.conf: api_url)</p>
 </body>
 </html>

@@ -70,10 +70,12 @@ cmake --build .
 ./build/ip_inventory_backend
 
 # С явен път до config
-IPINVENTORY_CONFIG=/etc/ip-inventory/config.conf ./build/ip_inventory_backend
+# Config is read from config.conf in current directory; copy config to /etc/ip-inventory/ and run from there
+./build/ip_inventory_backend
 
 # Без config файл – само env
-IPINVENTORY_HOST=127.0.0.1 IPINVENTORY_PORT=8888 IPINVENTORY_DB_TYPE=sqlite IPINVENTORY_DB=./ip_inventory.db ./build/ip_inventory_backend
+# Set host, port, db_type, db_path in config.conf in current directory
+./build/ip_inventory_backend
 ```
 
 След старт backend-ът слуша на конфигурирания host/port (по подразбиране `127.0.0.1:8888`). За спиране: Ctrl+C.
@@ -89,7 +91,7 @@ ip_inventory_backend.exe
 Или с променливи на средата:
 
 ```cmd
-set IPINVENTORY_CONFIG=C:\ip-inventory\config.conf
+# Place config.conf next to the executable
 ip_inventory_backend.exe
 ```
 
@@ -160,7 +162,7 @@ journalctl -u ip_inventory_backend -f
 3. В прозореца на NSSM задай:
    - **Path:** път до `ip_inventory_backend.exe`
    - **Startup directory:** папката с `config.conf` (напр. `C:\ip-inventory`)
-   - При нужда в таб **Environment** добави променливи като `IPINVENTORY_CONFIG=C:\ip-inventory\config.conf`
+   - При нужда в таб **Environment** добави променливи като config.conf in the same directory as the executable
 4. Стартиране/спиране на службата:
    ```cmd
    nssm start IpInventoryBackend
@@ -181,4 +183,4 @@ journalctl -u ip_inventory_backend -f
 | **Linux** | `build/ip_inventory_backend` | `./build/ip_inventory_backend` | systemd unit (виж `docs/ip_inventory_backend.service.example`) |
 | **Windows** | `build\Release\ip_inventory_backend.exe` | `ip_inventory_backend.exe` | NSSM или Task Scheduler |
 
-Конфигурацията (host, port, БД) се задава чрез `config.conf` или променливите на средата `IPINVENTORY_*` – виж `README.md` и `config.conf.example`.
+Конфигурацията (host, port, БД) се чете само от `config.conf` – виж `README.md` и `config.conf`.
