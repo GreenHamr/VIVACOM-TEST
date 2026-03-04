@@ -105,5 +105,6 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
         <button type="submit">Добави в pool</button>
     </form>
     <p class="hint">Празните редове се пропускат. API: <?php echo htmlspecialchars($config['base_url'], ENT_QUOTES, 'UTF-8'); ?> (задава се в config.conf: api_url)</p>
+    <p><a href="test-api.php">API тестове</a></p>
 </body>
 </html>

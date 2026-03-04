@@ -616,7 +616,7 @@ curl http://localhost/ip-inventory/serviceId?serviceId=test
 
 PHP интерфейс за добавяне на IP адреси в pool чрез метода **POST /ip-inventory/ip-pool**. Файловете са в директория `web/`.
 
-**Файлове:** `web/index.php` – форма с редове за IP и тип (IPv4/IPv6); изпраща заявка към API. `web/config.php` – базов URL на API (по подразбиране `http://127.0.0.1:8888`). Задай `api_url` в `config.conf`.
+**Файлове:** `web/index.php` – форма с редове за IP и тип (IPv4/IPv6); изпраща заявка към API. `web/config.php` – базов URL на API (по подразбиране `http://127.0.0.1:8888`). Задай `api_url` в `config.conf`. `web/test-api.php` – пуска всички API тестове в браузъра (същият сценарий като `tests/php/run-all.php`).
 
 **Изисквания:** PHP 5.6+ с разширение **curl**; backend да работи на конфигурирания URL.
 

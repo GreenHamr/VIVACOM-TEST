@@ -616,7 +616,7 @@ If Apache is configured correctly, the request reaches the C++ backend and retur
 
 PHP interface for adding IP addresses to the pool via **POST /ip-inventory/ip-pool**. Files are in the `web/` directory.
 
-**Files:** `web/index.php` – form with rows for IP and type (IPv4/IPv6); sends the request to the API. `web/config.php` – API base URL (default `http://127.0.0.1:8888`). Set `api_url` in `config.conf`.
+**Files:** `web/index.php` – form with rows for IP and type (IPv4/IPv6); sends the request to the API. `web/config.php` – API base URL (default `http://127.0.0.1:8888`). Set `api_url` in `config.conf`. `web/test-api.php` – runs all API tests in the browser (same scenario as `tests/php/run-all.php`).
 
 **Requirements:** PHP 5.6+ with **curl** extension; backend must be running on the configured URL.
 
