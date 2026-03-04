@@ -655,6 +655,6 @@ php jobs/release-expired-reservations.php 45
 ```
 Run the job from the project root (or ensure `config.conf` is in the parent directory of `jobs/` when run from cron).
 
-==================================================================================
-My personal opinion: For a REST API I would use another programming language that is closer to the chosen web server. For example, with Apache it is a good fit to use PHP. Using C++ to implement a REST API increases the complexity of the task and makes maintenance harder.
+---
 
+**Personal note.** For a REST API I would choose a language that fits the web server better (e.g. PHP with Apache). Implementing the API in C++ adds complexity and makes maintenance harder.
